@@ -19,23 +19,43 @@ data$EVTYPE <- tolower(data$EVTYPE)
 
 ##Data Analysis
 
+```{r echo=FALSE}
+
+summaryFatalities <- aggregate(data$FATALITIES ~ data$EVTYPE, data = data, FUN = sum)
+colnames(summaryFatalities) <- c("EVTYPE", "FATALITIES")
+ summaryFatalities <- summaryFatalities[order(summaryFatalities$EVTYPE), ]
+
+summaryInjuries <- aggregate(data$INJURIES ~ data$EVTYPE, data = data, FUN = sum)
+colnames(summaryInjuries) <- c("EVTYPE", "INJURIES")
+summaryInjuries <- summaryInjuries[order(summaryInjuries$EVTYPE), ]
+
+summaryHarmful <- cbind(summaryFatalities, summaryInjuries$INJURIES)
+colnames(summaryHarmful) <- c("EVTYPE", "FATALITIES", "INJURIES")
+
+summaryHarmful <- summaryHarmful[summaryHarmful$FATALITIES > 0, ]
+summaryHarmful <- summaryHarmful[order(summaryHarmful$INJURIES, decreasing = TRUE), ]
+
+
+summaryDamage <- aggregate(data$PROPDMG ~ data$EVTYPE, data = data, FUN = sum)
+colnames(summaryDamage) <- c("EVTYPE", "DAMAGES")
+```
+
+#Most harmful with respect to population health
 ```{r}
-
-table1 <- aggregate(data$FATALITIES ~ data$EVTYPE, data = data, FUN = sum)
-colnames(table1) <- c("EVTYPE", "FATALITIES")
- table1 <- table1[order(table1$EVTYPE), ]
-
-table2 <- aggregate(data$INJURIES ~ data$EVTYPE, data = data, FUN = sum)
-colnames(table2) <- c("EVTYPE", "INJURIES")
-table2 <- table2[order(table2$EVTYPE), ]
-
-table3 <- cbind(table1, table2$INJURIES)
-colnames(table3) <- c("EVTYPE", "FATALITIES", "INJURIES")
-
-table3 <- table3[table3$FATALITIES > 0, ]
-table3 <- table3[order(table3$INJURIES, decreasing = TRUE), ]
-table3
+library(ggplot2)
+library(sqldf)
+DF=sqldf("SELECT *,FATALITIES+INJURIES AS TotalEffect from summaryHarmful ORDER BY TotalEffect DESC LIMIT 10")
+ggplot(data = DF, aes(x =EVTYPE, y = TotalEffect))+
+        geom_bar(stat = "identity")+xlab("Event Type")+ylab("Number of Harmful Events")+
+        labs(title="Top 10 Event Types With Highest Effect On Humans")
 
 ```
 
 
+#Events have the greatest economic consequences
+```{r}
+top10Damage=sqldf("SELECT *  from summaryDamage ORDER BY DAMAGES DESC LIMIT 10")
+ggplot(data = top10Damage, aes(x =EVTYPE, y = DAMAGES))+
+        geom_bar(stat = "identity")+xlab("Event Type")+ylab("Damage Done")+
+        labs(title="Top 10 Event Types With Highest Effect On Economy")
+```
