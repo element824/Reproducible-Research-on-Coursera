@@ -5,19 +5,26 @@ date: "22 June 2015"
 output: html_document
 ---
 
-Synopsis here:.....
+#Summary
+  This insight is looking at the strom and bad weather data from U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. 
+  This insight is to understand the which event types caused huge damages to humanity and as well economically. 
 
-##Data Processing
+#Data Loading
+
+Loading the raw data from repdata-data-StormData.csv.bz2
+[Link to Download Strom Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2)
 
 ```{r cache=TRUE}
-
 data <- read.csv("data//repdata-data-StormData.csv.bz2")
 data$EVTYPE <- tolower(data$EVTYPE)
-
 ```
 
 
-##Data Analysis
+##Data Processing 
+
+* Step 1: Summarise the Event Types based on Fatalities 
+* Step 2: Summarise the Event Types based on Injuries
+* Step 3: Summarise the Event Types based on Damages
 
 ```{r echo=FALSE}
 
@@ -59,3 +66,8 @@ ggplot(data = top10Damage, aes(x =EVTYPE, y = DAMAGES))+
         geom_bar(stat = "identity")+xlab("Event Type")+ylab("Damage Done")+
         labs(title="Top 10 Event Types With Highest Effect On Economy")
 ```
+
+#Result
+
+* Tornado created the huge effect on humans as per this research.
+* Tornado, flash flood and tstm wind caused the huge damages to economy.
