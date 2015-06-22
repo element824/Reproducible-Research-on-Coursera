@@ -1,0 +1,186 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+    keep_md: true  
+   
+---
+
+## Loading and preprocessing the data
+
+```{r,Libraries}
+
+library(dplyr)
+library(ggplot2)
+```
+
+
+```{r,LoadingAndPreprocessingData}
+ 
+data = read.csv("../Course Project 1/activity.csv")
+
+data = tbl_df(data)
+data$date = as.Date(data$date)
+
+```
+
+## What is mean total number of steps taken per day?
+
+```{r, MeanTotalNumberStepsPerDay}
+totalStepsPerDay = 
+  data %>%
+  group_by(date) %>%
+  summarise(totalSteps = sum(steps,na.rm=T))
+
+meanStepsPerDay = mean(totalStepsPerDay$totalSteps, na.rm = TRUE)
+
+medianStepsPerDay = median(totalStepsPerDay$totalSteps, na.rm = TRUE)
+
+histogramTotalSteps = ggplot(totalStepsPerDay, aes(totalSteps)) + 
+  geom_histogram(fill = "darkgreen") + 
+  xlab("Total of steps per day") + 
+  ylab("% of total") +
+  annotate("segment", x = meanStepsPerDay, xend = meanStepsPerDay, y = 0, yend = 10,
+  colour = "blue", size = 1.5) + 
+  annotate("text", x = (meanStepsPerDay - 1000), y = 10, label = "Mean", colour = "blue") + 
+  annotate("segment", x = medianStepsPerDay, xend = medianStepsPerDay, y = 0, yend = 10,
+  colour = "red", size = 1.5) +
+  annotate("text", x = (medianStepsPerDay + 1000), y = 10, label = "Median", colour="red")
+
+```
+
+The folowing histogram shows the total of steps taken per day as a percentege of the total. The mean of the variable is `r meanStepsPerDay` steps and the median is `r medianStepsPerDay`.
+
+``` {r}
+histogramTotalSteps
+```
+
+
+## What is the average daily activity pattern?
+
+```{r, AverageDailyActivityPattern}
+dailyActivity = 
+  data %>%
+  group_by(interval) %>%
+  summarise(meanSteps = mean(steps,na.rm=T))
+
+maxSteps = max(dailyActivity$meanSteps)
+
+dailyActivityMax = as.data.frame(dailyActivity[dailyActivity$meanSteps==maxSteps,])
+
+maxInterval = as.integer(dailyActivityMax[1,1])
+
+dailyActivityPlot = 
+  ggplot(dailyActivity,aes(interval,meanSteps)) +
+    geom_line() + 
+    geom_point(data = dailyActivityMax,aes(interval,meanSteps),size=3,colour="red") + 
+    annotate("text", x = (maxInterval + 400), y = maxSteps, label = "Maximum number of steps interval", colour="red") +
+  xlab("Time of day") + 
+  ylab("Number o steps")
+```    
+
+The following time series shows the average amount of steps taken by day, across 5 minutes intervals. As seen in the plot, the maximum number of steps occurs during the `r maxInterval` interval, meaning the 8:35 in the morning.
+
+``` {r}
+dailyActivityPlot
+```
+
+
+## Imputing missing values
+
+``` {r, missingData}
+
+missingData = is.na(data$steps)
+amountMissingData = sum(missingData)
+
+  
+#Select the data with empty steps, merge it with the dailyActivity set wich contains de mean for each interval
+dataNAsFilled = merge(data[is.na(data$steps),],
+             dailyActivity,
+             all.x = T,
+             by = "interval"
+             )
+
+#order and select the new data set in the same way that the original one
+dataNAsFilled = select(dataNAsFilled,meanSteps,date,interval)
+names(dataNAsFilled) = names(data)
+
+#create a new data set with no NAs binding by rows the dataset with the filled NA data and the original wors with step data
+dataNoNAs = rbind(dataNAsFilled,
+                  data[!is.na(data$steps),]
+                  )
+                  
+
+#    Make a histogram
+
+totalStepsPerDay2 = 
+  dataNoNAs %>%
+  group_by(date) %>%
+  summarise(totalSteps = sum(steps,na.rm=T))
+
+meanStepsPerDay2 = mean(totalStepsPerDay2$totalSteps, na.rm = TRUE)
+
+medianStepsPerDay2 = median(totalStepsPerDay2$totalSteps, na.rm = TRUE)
+
+histogramTotalSteps2 = ggplot(totalStepsPerDay2, aes(totalSteps)) + 
+  geom_histogram(fill = "darkgreen") + 
+  xlab("Total of steps per day (No NAs)") + 
+  ylab("% of total") +
+  annotate("segment", x = meanStepsPerDay2, xend = meanStepsPerDay2, y = 0, yend = 10,
+  colour = "blue", size = 1.5) + 
+  annotate("text", x = (meanStepsPerDay2 - 1000), y = 10, label = "Mean", colour = "blue") + 
+  annotate("segment", x = medianStepsPerDay2, xend = medianStepsPerDay2, y = 0, yend = 10,
+  colour = "red", size = 1.5) +
+  annotate("text", x = (medianStepsPerDay2 + 1000), y = 10, label = "Median", colour="red")
+
+```
+
+The original dataset has `r amountMissingData` rows with missing data. In order to replace such missing data, the mean for the 5-minute interval it's used. 
+
+The folowing histogram shows the total of steps taken per day as a percentege of the total. The mean of the variable is `r meanStepsPerDay2` (`r meanStepsPerDay` in the original data set) steps and the median is `r medianStepsPerDay2` (`r medianStepsPerDay` in the original).
+
+``` {r}
+histogramTotalSteps2
+
+```
+
+As expected, filling the NAs with the mean for each interval, and then create a histogram for the total steps each day, procudes a new distribution of the variable with it's values closer to the mean and also the mean and the median are much alike. The amount of day with 0 total steps decreased from 10% to less than 2.5%
+
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+``` {r, weekdaysPlot}
+
+#in spanish "sábado" = "saturday" and "domingo" = "sunday"
+weekData = 
+  dataNoNAs %>%
+  mutate(wday = weekdays(date)) %>%
+  mutate(wday = wday != "domingo" & wday != "sábado") %>%
+  mutate(wday = factor(wday,
+                        labels = c("weekend","weekday")
+                        )
+         )
+
+
+dailyActivityWeek = 
+  weekData %>%
+  group_by(wday,interval) %>%
+  summarise(meanSteps = mean(steps,na.rm=T))
+
+
+dailyActivityWeekPlot = 
+  ggplot(dailyActivityWeek,aes(interval,meanSteps)) +
+  geom_line() +
+  facet_grid(wday ~ .) + 
+  ylab("Number of steps")
+
+```
+
+As seen in the following plot, during the weekend days the maximum of steps is also recorded during the morning time, but in a slightly different ways. While during weekdays, there is a clear maximum around 8:35 am (possibly walking to work), weekend days has two maximums before 10am, but with remarkable less distance with the other maximums. Also, in general, during weekdays there are more total of steps.  
+
+``` {r}
+dailyActivityWeekPlot
+
+```
+  
+
