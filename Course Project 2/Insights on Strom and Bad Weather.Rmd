@@ -1,0 +1,41 @@
+---
+title: "Insights on Storm and Bad Weather"
+author: "Koushik Nagarajan"
+date: "22 June 2015"
+output: html_document
+---
+
+Synopsis here:.....
+
+##Data Processing
+
+```{r cache=TRUE}
+
+data <- read.csv("data//repdata-data-StormData.csv.bz2")
+data$EVTYPE <- tolower(data$EVTYPE)
+
+```
+
+
+##Data Analysis
+
+```{r}
+
+table1 <- aggregate(data$FATALITIES ~ data$EVTYPE, data = data, FUN = sum)
+colnames(table1) <- c("EVTYPE", "FATALITIES")
+ table1 <- table1[order(table1$EVTYPE), ]
+
+table2 <- aggregate(data$INJURIES ~ data$EVTYPE, data = data, FUN = sum)
+colnames(table2) <- c("EVTYPE", "INJURIES")
+table2 <- table2[order(table2$EVTYPE), ]
+
+table3 <- cbind(table1, table2$INJURIES)
+colnames(table3) <- c("EVTYPE", "FATALITIES", "INJURIES")
+
+table3 <- table3[table3$FATALITIES > 0, ]
+table3 <- table3[order(table3$INJURIES, decreasing = TRUE), ]
+table3
+
+```
+
+
